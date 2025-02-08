@@ -11,8 +11,10 @@ import platform
 import sys
 
 if version_parse(platform.python_version()) < version_parse("3.9"):
-    print("[FAIL] We recommend Python 3.9 or newer but"
-          " found version %s" % (sys.version))
+    print(
+        "[FAIL] We recommend Python 3.9 or newer but"
+        " found version %s" % (sys.version)
+    )
 else:
     print("[OK] Your Python version is %s" % (platform.python_version()))
 
@@ -23,9 +25,11 @@ def get_packages(pkgs):
         try:
             imported = import_module(p)
             try:
-                version = (getattr(imported, "__version__", None) or
-                           getattr(imported, "version", None) or
-                           getattr(imported, "version_info", None))
+                version = (
+                    getattr(imported, "__version__", None)
+                    or getattr(imported, "version", None)
+                    or getattr(imported, "version_info", None)
+                )
                 if version is None:
                     # If common attributes don"t exist, use importlib.metadata
                     version = importlib.metadata.version(p)
@@ -86,9 +90,13 @@ def check_packages(d):
         if actual_ver < lower and upper is None:
             print(f"[FAIL] {pkg_name} {actual_ver}, please upgrade to >= {lower}")
         elif actual_ver < lower:
-            print(f"[FAIL] {pkg_name} {actual_ver}, please upgrade to >= {lower} and < {upper}")
+            print(
+                f"[FAIL] {pkg_name} {actual_ver}, please upgrade to >= {lower} and < {upper}"
+            )
         elif upper is not None and actual_ver >= upper:
-            print(f"[FAIL] {pkg_name} {actual_ver}, please downgrade to >= {lower} and < {upper}")
+            print(
+                f"[FAIL] {pkg_name} {actual_ver}, please downgrade to >= {lower} and < {upper}"
+            )
         else:
             print(f"[OK] {pkg_name} {actual_ver}")
 

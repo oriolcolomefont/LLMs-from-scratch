@@ -25,7 +25,7 @@ HPARAM_GRID = {
 
 
 def calc_loss_loader(data_loader, model, device, num_batches=None):
-    total_loss = 0.
+    total_loss = 0.0
     if len(data_loader) == 0:
         return float("nan")
     elif num_batches is None:
@@ -53,16 +53,29 @@ def calc_loss_batch(input_batch, target_batch, model, device):
 def evaluate_model(model, train_loader, val_loader, device, eval_iter):
     model.eval()
     with torch.no_grad():
-        train_loss = calc_loss_loader(train_loader, model, device, num_batches=eval_iter)
+        train_loss = calc_loss_loader(
+            train_loader, model, device, num_batches=eval_iter
+        )
         val_loss = calc_loss_loader(val_loader, model, device, num_batches=eval_iter)
     model.train()
     return train_loss, val_loss
 
 
-def train_model(model, train_loader, val_loader, optimizer, device,
-                n_epochs, eval_freq, eval_iter,
-                encoded_start_context, tokenizer, warmup_iters=10,
-                initial_lr=3e-05, min_lr=1e-6):
+def train_model(
+    model,
+    train_loader,
+    val_loader,
+    optimizer,
+    device,
+    n_epochs,
+    eval_freq,
+    eval_iter,
+    encoded_start_context,
+    tokenizer,
+    warmup_iters=10,
+    initial_lr=3e-05,
+    min_lr=1e-6,
+):
     global_step = 0
 
     max_lr = optimizer.param_groups[0]["lr"]
@@ -86,8 +99,12 @@ def train_model(model, train_loader, val_loader, optimizer, device,
                 lr = initial_lr + global_step * lr_increment
             # Cosine annealing phase
             else:
-                progress = (global_step - warmup_iters) / (total_training_iters - warmup_iters)
-                lr = min_lr + (max_lr - min_lr) * 0.5 * (1 + math.cos(math.pi * progress))
+                progress = (global_step - warmup_iters) / (
+                    total_training_iters - warmup_iters
+                )
+                lr = min_lr + (max_lr - min_lr) * 0.5 * (
+                    1 + math.cos(math.pi * progress)
+                )
 
             # Apply the calculated learning rate
             for param_group in optimizer.param_groups:
@@ -102,7 +119,9 @@ def train_model(model, train_loader, val_loader, optimizer, device,
 
             optimizer.step()
 
-    train_loss, val_loss = evaluate_model(model, train_loader, val_loader, device, eval_iter)
+    train_loss, val_loss = evaluate_model(
+        model, train_loader, val_loader, device, eval_iter
+    )
 
     return train_loss, val_loss
 
@@ -115,12 +134,14 @@ if __name__ == "__main__":
     print(f"Total hyperparameter configurations: {total_combinations}")
 
     # Placeholder for the best loss and best hyperparameters
-    best_val_loss = float('inf')
+    best_val_loss = float("inf")
     best_hparams = {}
 
     script_path = os.path.abspath(__file__)
     script_dir = os.path.dirname(script_path)
-    with open(os.path.join(script_dir, "the-verdict.txt"), "r", encoding="utf-8") as file:
+    with open(
+        os.path.join(script_dir, "the-verdict.txt"), "r", encoding="utf-8"
+    ) as file:
         text_data = file.read()
 
     tokenizer = tiktoken.get_encoding("gpt2")
@@ -143,13 +164,13 @@ if __name__ == "__main__":
             HPARAM_CONFIG = dict(zip(HPARAM_GRID.keys(), combination))
 
             GPT_CONFIG_124M = {
-                "vocab_size": 50257,    # Vocabulary size
+                "vocab_size": 50257,  # Vocabulary size
                 "context_length": 256,  # Context length -- shortened from original 1024 tokens
-                "emb_dim": 768,         # Embedding dimension
-                "n_heads": 12,          # Number of attention heads
-                "n_layers": 12,         # Number of layers
+                "emb_dim": 768,  # Embedding dimension
+                "n_heads": 12,  # Number of attention heads
+                "n_layers": 12,  # Number of layers
                 "drop_rate": HPARAM_CONFIG["drop_rate"],
-                "qkv_bias": False,     # Query-Key-Value bias
+                "qkv_bias": False,  # Query-Key-Value bias
             }
 
             torch.manual_seed(123)
@@ -160,7 +181,7 @@ if __name__ == "__main__":
                 stride=GPT_CONFIG_124M["context_length"],
                 drop_last=True,
                 shuffle=True,
-                num_workers=0
+                num_workers=0,
             )
 
             val_loader = create_dataloader_v1(
@@ -170,7 +191,7 @@ if __name__ == "__main__":
                 stride=GPT_CONFIG_124M["context_length"],
                 drop_last=False,
                 shuffle=False,
-                num_workers=0
+                num_workers=0,
             )
 
             model = GPTModel(GPT_CONFIG_124M)
@@ -179,21 +200,26 @@ if __name__ == "__main__":
             optimizer = torch.optim.AdamW(
                 model.parameters(),
                 lr=HPARAM_CONFIG["peak_lr"],
-                weight_decay=HPARAM_CONFIG["weight_decay"]
+                weight_decay=HPARAM_CONFIG["weight_decay"],
             )
 
             encoded_start_context = tokenizer.encode("Nevertheless")
             encoded_tensor = torch.tensor(encoded_start_context).unsqueeze(0)
 
             train_loss, val_loss = train_model(
-                model, train_loader, val_loader, optimizer, device,
+                model,
+                train_loader,
+                val_loader,
+                optimizer,
+                device,
                 n_epochs=HPARAM_CONFIG["n_epochs"],
-                eval_freq=5, eval_iter=1,
+                eval_freq=5,
+                eval_iter=1,
                 encoded_start_context=encoded_tensor,
                 tokenizer=tokenizer,
                 warmup_iters=HPARAM_CONFIG["warmup_iters"],
                 initial_lr=HPARAM_CONFIG["initial_lr"],
-                min_lr=HPARAM_CONFIG["min_lr"]
+                min_lr=HPARAM_CONFIG["min_lr"],
             )
 
             # Log the best hyperparameters based on validation loss
